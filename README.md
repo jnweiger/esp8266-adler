@@ -5,8 +5,9 @@ Done with visual-studio code and platformio.
 Based on https://github.com/jnweiger/esp8266-esp8266-ota-blink-blink
 
 This code enables OTA (over-the-air) programming of a wemos or esp8266 device.
-It features the standard wlan-chooser procedure via an initial access-point (SSID: BlinkBlinkAutoconnectAP).
-I have not yet found a way to become a permanent access point (That would be good for robustness, currently
-it seems we always need another WLAN to connect to.)
+It features the standard wlan-chooser procedure via an initial access-point (SSID: Adler_AutoAPxxxxxx).
+It connects to the selected wlan with a DHCP ID Adler_xxxxxx.
 
+HTTP port 80 has a simple form with buttons to navigate the model (both on floor and on rails) and trigger special effects.
 
+The mechanical model of the "Adler" locomotive is available from https://www.thingiverse.com/thing:3603323
