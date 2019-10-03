@@ -1,0 +1,112 @@
+D2 == GPIO4, this pin can do hardware PWM, will Arduino ue hardware pwm?
+
+Four PWM output interfaces have been defined by ESP8266EX. They can be extended by users
+themselves. The present pin definitions of the PWM interfaces are defined as below:
+
+PinName_PinNum__IO______Function Name
+MTDI 	10 	IO12 	PWM0
+MTDO 	13 	IO15 	PWM1
+MTMS 	 9 	IO14 	PWM2
+GPIO4 	16 	IO4 	PWM3
+
+The functionality of PWM interfaces can be implemented via software programming. For example, in
+the LED smart light demo, the function of PWM is realized by interruption of the timer, the minimum
+resolution can reach as much as 44 ns. PWM frequency range is adjustable from 1000 us to 10000 us,
+i.e., between 100Hz and 1KHz. When the PWM frequency is at 1 KHz, the duty ratio will reach
+1/22727, and over 14 bit resolution will be achieved at 1KHz refresh rate.
+
+----------------------------------------------------------------------------
+https://www.electronicwings.com/nodemcu/servo-motor-interfacing-with-nodemcu
+
+# Standard Servo Protocol. Really low resolution :-(
+
+uint8_t ServoMotorpin = D2;	// aka GPIO4
+
+void setup(){
+ analogWrite(ServoMotorpin, 512);	// WHY start out of range here?
+ analogWriteFreq(50);  /* Set PWM frequency to 50Hz */
+}
+void loop(){
+ uint16_t dutycycle=  analogRead(A0); /* Read potentiometer to control servo motor */
+ if(dutycycle> 1023) dutycycle = 1023;
+ dutycycle = 25+((85*dutycycle/1023)); /* make it in range 20 to 110 */
+ analogWrite(ServoMotorpin, dutycycle);  /* Write duty cycle to pin */
+ delay(100);
+}
+
+
+-------------------------------------------------------------------------
+https://www.electronicwings.com/nodemcu/dc-motor-interfacing-with-nodemcu
+-> using 3pin interface with L293D. 
+
+We need 2 pin interface for DRV8833.
+
+--------------------------------------------------------------------------------------
+https://github.com/wemos/D1_mini_Examples/blob/master/examples/01.Basics/Fade/Fade.ino
+
+fades the BUILTIN_LED, (which is GPIO2?)
+
+/*
+ * Copyright (c) 2015, circuits4you.com
+ * All rights reserved.
+/* Generates PWM on Internal LED Pin GPIO 2 of ESP8266*/
+
+#include <ESP8266WiFi.h>
+#define LED 2
+
+int brightness = 0;    // how bright the LED is
+int fadeAmount = 5;    // how many points to fade the LED by
+
+//=======================================================================
+//                    Power on setup
+//=======================================================================
+void setup() {
+  Serial.begin(115200);
+  pinMode(LED,OUTPUT);
+}
+
+//=======================================================================
+//                    Main Program Loop
+//=======================================================================
+void loop() {
+  //PWM Value varries from 0 to 1023  
+  Serial.println("10 % PWM");
+  analogWrite(LED,102);
+  delay(2000);
+
+  Serial.println("20 % PWM");
+  analogWrite(LED,205);
+  delay(2000);
+
+  Serial.println("40 % PWM");
+  analogWrite(LED,410);
+  delay(2000);
+
+  Serial.println("70 % PWM");
+  analogWrite(LED,714);
+  delay(2000);
+
+  Serial.println("100 % PWM");
+  analogWrite(LED,1024);
+  delay(2000);
+
+  //Continuous Fading
+  Serial.println("Fadding Started");
+  while(1)
+  {
+    // set the brightness of pin 9:
+    analogWrite(LED, brightness);
+  
+    // change the brightness for next time through the loop:
+    brightness = brightness + fadeAmount;
+  
+    // reverse the direction of the fading at the ends of the fade:
+    if (brightness <= 0 || brightness >= 1023) {
+      fadeAmount = -fadeAmount;
+    }
+    // wait for 30 milliseconds to see the dimming effect
+    delay(10);
+  }
+}
+//=======================================================================
+

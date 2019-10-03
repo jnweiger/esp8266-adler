@@ -14,13 +14,23 @@
  * 
  * Requires: WiFiManager. (PIO Home -> Open -> Libraries ... search is blocked. Hmm.)
  *                        Edit platformio.ini: Add lib_deps = WiFiManager@>=0.14
- * 
- * Caution: It still compiles if WiFiManager is misspelled in platformio.ini
+ *           DRV8833
+ * Caution: It still compiles if Library names are misspelled in platformio.ini
+ *
+ * DRV8833 PWM settings are
+ *          x_PWM1 x_PWM2    Mode
+ *            0      0       Coast/Fast decay
+ *            0      1       Reverse
+ *            1      0       Forward
+ *            1      1       Brake/slow decay
+ * We should use pwm so that it toggles beteen a drive direction and free open outputs. Let's assume that this is the 
+ * 0 0 coasting mode. The fast and slow decay labels are confusing. (I had assumed that Brake is the fast decay....)
  */
 
 #include <Arduino.h>
 
 #include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
+// #include <DRV8833.h>           // ouch, the official DRV8833 driver does not support arduino framework or wemos platforms
 
 // needed for WifiManager
 #include <DNSServer.h>

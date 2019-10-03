@@ -1,0 +1,93 @@
+
+BOM
+---
+
+ 2x Crazypony LiPo 1s 650mAh	63 x 17 x 8 mm
+ 1x TI DRV8833 Module		dual motor H-Bridge
+ 1x Tower Pro MG90s 		Micro servo (modded)
+ 1x EFlite EFLRDS76T		4.8 - 6V DC
+ 1x AMS1117-3.3 Module   	Linear voltage regulator
+ 1x ESP-12-F Module
+ 1x USB-Serial dongle
+
+
+ESP-12-F Module		USB-Serial dongle
+
+22	TXD0 ------------- RXD
+21	RXD0 ------------- TXD
+			
+15	GND  ---+-------+- GND
+16  D8	GPIO15 -+	|
+			|
+18  D3  GPIO00 ----o  o-+	PROGRAMMING
+
+
+ESP-12-F Module		AMS1117-3.3 Module
+
+3	EN   --+
+8	VCC  --+-------- OUT 3V3
+
+15	GND  ----------- GND ----------------- 2S Lipo (-)
+
+			 IN  -----------+----- 2S Lipo (+)
+					|
+					|
+ESP-12-F Module		DRV8833		|
+				     	|
+			 VM ------------+
+15	GND  ----------- GND		
+
+			 J2 ----+
+			 J2 ----+
+			 EEP ------- nc		(nSleep)
+			 ULT ------- nc		(nFault)
+
+		      +- IN1 			(AIN1) 
+19  D2	GPIO04 -------+- IN3			(BIN1)
+
+		      +- IN2			(AIN2)
+20  D1	GPIO05 -------+- IN4			(BIN2)
+
+			 OUT1 -+
+			 OUT3 -+------------------- Motor
+
+			 OUT2 -+
+			 OUT4 -+------------------- Motor
+
+
+
+EPS 12-F pinout
+===============
+
+right side
+
+1	RST
+2	ADC
+3	EN
+4   D0	GPIO16		is high at boot
+5   D5	GPIO14 	(SCK)
+6   D6	GPIO12	(MISO)
+7   D7	GPIO13  (MOSI)
+8	VCC
+
+bottom 
+
+9	CS0
+10	MISO
+11	GPIO09		is high at boot
+12	GPIO10		is high at boot
+13	MOSI
+14	SCLK
+
+left side
+
+22	TXD0
+21	RXD0
+20  D1	GPIO05  (SCL)
+19  D2	GPIO04	(SDA)
+18  D3  GPIO00		PGM
+17  D4	GPIO02	(BUILTIN_LED)
+16  D8	GPIO15		RUN
+15	GND
+
+
