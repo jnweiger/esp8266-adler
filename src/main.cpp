@@ -24,7 +24,11 @@
  *            1      0       Forward
  *            1      1       Brake/slow decay
  * We should use pwm so that it toggles beteen a drive direction and free open outputs. Let's assume that this is the 
- * 0 0 coasting mode. The fast and slow decay labels are confusing. (I had assumed that Brake is the fast decay....)
+ * 0 0 coasting mode. The fast and slow decay labels are confusing. Fast decay means the current decays fast. 
+ * Drivers tristate, only the clamping diodes pull. Slow decay is when the wires are short circuited. Not sure what is better.
+ * I had assumed that short circuit would be a strong current. But they call it fast decay, okay.
+ * 
+ * We use GPIO04 and GPIO05 aka (D1 + D2) for motor PWM.
  */
 
 #include <Arduino.h>
@@ -113,23 +117,37 @@ void setup() {
 int nblinks = 2;
 String header;
 
+int blinkstate = 0;
+#define BLINKPAUSE 3
+int blinkcount = 0; 
+
 void loop() {
-  // put your main code here, to run repeatedly ...
 
   Serial.printf("nblinks=%d\r\n", nblinks);  
   ArduinoOTA.handle();
 
-  for (int i = 0; i < nblinks; i++)
+  if (!blinkstate)
     {
       // turn the LED on by making the voltage LOW
-      digitalWrite(LED_BUILTIN, LOW);
-      delay(100); 
+      if (blinkcount >= 0)
+        digitalWrite(LED_BUILTIN, LOW);
+      blinkstate = !blinkstate;
+    }
+  else
+    {
       // turn the LED off (HIGH is the voltage level)
-      digitalWrite(LED_BUILTIN, HIGH);
-      delay(100);
+      if (blinkcount >= 0)
+        digitalWrite(LED_BUILTIN, HIGH);
+      blinkstate = !blinkstate;
+      blinkcount++;
+    }        
+
+  if (blinkcount >= nblinks)
+    {
+      blinkcount = -BLINKPAUSE;
     }
 
-  delay(900);
+  delay(100);
 
   WiFiClient client = webserver.available();
   if (client) {                             // If a new client connects,

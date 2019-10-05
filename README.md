@@ -40,8 +40,10 @@ The digital outputs are D0, D1, D2, D3
  * MTDI     10  IO12    PWM0
  * MTDO     13  IO15    PWM1
  * MTMS     9   IO14    PWM2
- * GPIO4    16  IO4     PWM3
+ * GPIO04   16  IO4     PWM3
  *
  */
 
+
+We use D1+D2 aka (GPIO04 + GPIO05) for the motor PWM.
 
