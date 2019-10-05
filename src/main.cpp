@@ -1,17 +1,17 @@
 /*
  * Accesspoint Basic OTA
- * 
+ *
  * It is a complex thing. OTA can be done in different ways.
- * - My prefered way would be: Open an accesspoint, run the loop, while accepting either OTA program uploads or 
+ * - My prefered way would be: Open an accesspoint, run the loop, while accepting either OTA program uploads or
  *   accepting blynk style commands. This is most robust, but not mainstram, and not even supported, it seems.
  * - Mainstream: if there is a network config from a previous run, re-use that. If it connects, run the code, accept commands.
  *   If that network does not connect, open an accesspoint, that allows entering a network config. then try to connect there,
  *   if it fails, restart. That requires a working WLAN.
  *   Then, OTA is done through that WLAN we connect to.
- * 
+ *
  * http://arduino.esp8266.com/Arduino/versions/2.0.0/doc/ota_updates/ota_updates.html
  * https://github.com/tzapu/WiFiManager/blob/master/examples/AutoConnect/AutoConnect.ino
- * 
+ *
  * Requires: WiFiManager. (PIO Home -> Open -> Libraries ... search is blocked. Hmm.)
  *                        Edit platformio.ini: Add lib_deps = WiFiManager@>=0.14
  *           DRV8833
@@ -23,11 +23,11 @@
  *            0      1       Reverse
  *            1      0       Forward
  *            1      1       Brake/slow decay
- * We should use pwm so that it toggles beteen a drive direction and free open outputs. Let's assume that this is the 
- * 0 0 coasting mode. The fast and slow decay labels are confusing. Fast decay means the current decays fast. 
+ * We should use pwm so that it toggles beteen a drive direction and free open outputs. Let's assume that this is the
+ * 0 0 coasting mode. The fast and slow decay labels are confusing. Fast decay means the current decays fast.
  * Drivers tristate, only the clamping diodes pull. Slow decay is when the wires are short circuited. Not sure what is better.
  * I had assumed that short circuit would be a strong current. But they call it fast decay, okay.
- * 
+ *
  * We use GPIO04 and GPIO05 aka (D1 + D2) for motor PWM.
  */
 
@@ -53,10 +53,10 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   // turn the LED on by making the voltage LOW
   digitalWrite(LED_BUILTIN, LOW);
-  delay(100); 
+  delay(100);
   // turn the LED on by making the voltage LOW
   digitalWrite(LED_BUILTIN, HIGH);
-  delay(100); 
+  delay(100);
   // turn the LED on by making the voltage LOW
   digitalWrite(LED_BUILTIN, LOW);
   // start serial
@@ -68,7 +68,7 @@ void setup() {
 
 #if 0
   // use setHostname() as soon as it is in master of github.com/tzapu/WiFiManager
-  wifimanager.setHostname( ("Adler_" + String(ESP.getChipId(), HEX)).c_str() );     
+  wifimanager.setHostname( ("Adler_" + String(ESP.getChipId(), HEX)).c_str() );
 #else
   WiFi.hostname( ("Adler_" + String(ESP.getChipId(), HEX)).c_str() );               // ESP8266 only.
 #endif
@@ -114,16 +114,21 @@ void setup() {
   ArduinoOTA.begin();
 }
 
+int motor_set_speed = 0;		// -1023 .. 0 1023
 int nblinks = 2;
 String header;
 
 int blinkstate = 0;
 #define BLINKPAUSE 3
-int blinkcount = 0; 
+int blinkcount = 0;
+
+uint8_t Motorpin1 = D1;		// aka GPIO04
+uint8_t Motorpin2 = D2;		// aka GPIO05
+int motor_cur_speed = 0;	// -1023 .. 0 1023
 
 void loop() {
 
-  Serial.printf("nblinks=%d\r\n", nblinks);  
+  Serial.printf("nblinks=%d\r\n", nblinks);
   ArduinoOTA.handle();
 
   if (!blinkstate)
@@ -140,7 +145,7 @@ void loop() {
         digitalWrite(LED_BUILTIN, HIGH);
       blinkstate = !blinkstate;
       blinkcount++;
-    }        
+    }
 
   if (blinkcount >= nblinks)
     {
@@ -169,37 +174,68 @@ void loop() {
             client.println("Connection: close");
             client.println("Cache-Control: no-cache");    // wichtig! damit Daten nicht aus dem Browser cach kommen
             client.println();
-            
+
             // adjust number of blinks
             int pos = header.indexOf("GET /set?nblinks=");
             if (pos >= 0) {
               char ch = header.charAt(pos+17);
               if (ch > '0' && ch <= '9') nblinks = ch - '0';
             }
-            
+            else if (header.indexOf("GET /stop") >= 0)
+              {
+                motor_set_speed = 0;
+              }
+            else if (header.indexOf("GET /fwd") >= 0)
+              {
+                // if (motor_set_speed < 0) motor_set_speed = 0;
+                motor_set_speed += 128;
+                if (motor_set_speed >= 1024) motor_set_speed = 1023;
+              }
+            else if (header.indexOf("GET /bwd") >= 0)
+              {
+                // if (motor_set_speed > 0) motor_set_speed = 0;
+                motor_set_speed -= 64;
+                if (motor_set_speed <= -1024) motor_set_speed = -1023;
+              }
+            else if (header.indexOf("GET /ffwd") >= 0)
+              {
+                motor_set_speed = 1023;
+              }
+            else if (header.indexOf("GET /fbwd") >= 0)
+              {
+                motor_set_speed = -1023;
+              }
+
             // Display the HTML web page
             client.println("<!DOCTYPE html><html>");
             client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
             client.println("<link rel=\"icon\" href=\"data:,\">");
-            // CSS to style the on/off buttons 
+            // CSS to style the on/off buttons
             // Feel free to change the background-color and font-size attributes to fit your preferences
             client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
-            client.println(".button { background-color: #195B6A; border: none; color: white; padding: 16px 40px;");
+            client.println(".button { background-color: #195B6A; border: none; color: white; padding: 12px 40px;");
             client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
             client.println(".button2 {background-color: #77878A;}</style></head>");
-            
+
             // Web Page Heading
-            client.println("<body><h1>ESP8266 OTA Blinker</h1>");
-            
-            // Display current state, and ON/OFF buttons for GPIO 5  
+            client.println("<body><h4>Adler drive</h4>");
+
+            // Display current state, and ON/OFF buttons for GPIO 5
+            client.println("<table border=\"0\" cellpadding=\"10\" width=\"80%\"><tr><td width=\"40%\">");
             client.printf("<p>nblinks=%d</p>\n", nblinks);
             client.println("<p><a href=\"/set?nblinks=1\"><button class=\"button\">1</button></a></p>");
             client.println("<p><a href=\"/set?nblinks=2\"><button class=\"button\">2</button></a></p>");
             client.println("<p><a href=\"/set?nblinks=3\"><button class=\"button\">3</button></a></p>");
             client.println("<p><a href=\"/set?nblinks=4\"><button class=\"button\">4</button></a></p>");
-            client.println("<p><a href=\"/set?nblinks=5\"><button class=\"button\">5</button></a></p>");
-            client.println("</body></html>");
-            
+            client.println("</td><td width=\"40%\">");
+            client.printf("<p>speed=%d</p>\n", motor_set_speed);
+            client.println("<p><a href=\"/ffwd\"><button class=\"button\">&gt;&gt;</button></a></p>");
+            client.println("<p><a href=\"/fwd\"><button class=\"button\">&gt;</button></a></p>");
+            client.println("<p><a href=\"/stop\"><button class=\"button\">[]</button></a></p>");
+            client.println("<p><a href=\"/bwd\"><button class=\"button\">&lt;</button></a></p>");
+            client.println("<p><a href=\"/fbwd\"><button class=\"button\">&lt;&lt;</button></a></p>");
+            client.println("</td></tr></table>\n</body></html>");
+
             // The HTTP response ends with another blank line
             client.println();
             // Break out of the while loop
