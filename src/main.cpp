@@ -124,7 +124,7 @@ void setup() {
 }
 
 #define LOOP_DELAY 100		// 100: run 10 loops per second.
-int motor_set_speed = 160;	// -1023 .. 0 1023; 160 minimum to break loose
+int motor_set_speed = 0;	// -1023 .. 0 1023; 160 minimum to break loose
 int nblinks = 2;
 String header;
 
@@ -132,7 +132,7 @@ int blinkstate = 0;
 #define BLINK_PAUSE 3
 int blinkcount = 0;
 
-#define MOTOR_ACCEL 16		// from stop to full speed takes 1024/MOTOR_ACCEL*LOOP_DELAY*0.001 seconds.
+#define MOTOR_ACCEL 12		// from stop to full speed takes 1024/MOTOR_ACCEL*LOOP_DELAY*0.001 seconds.
 int motor_cur_speed = 0;	// -1023 .. 0 1023
 
 void loop() {
@@ -176,7 +176,7 @@ void loop() {
   else
     {
       digitalWrite(MOTORPIN1, LOW);
-      analogWrite(MOTORPIN2, motor_cur_speed);
+      analogWrite(MOTORPIN2, -motor_cur_speed);
     }
 
   delay(LOOP_DELAY);
@@ -221,7 +221,7 @@ void loop() {
             else if (header.indexOf("GET /bwd") >= 0)
               {
                 // if (motor_set_speed > 0) motor_set_speed = 0;
-                motor_set_speed -= 64;
+                motor_set_speed -= 128;
                 if (motor_set_speed <= -1024) motor_set_speed = -1023;
               }
             else if (header.indexOf("GET /ffwd") >= 0)
