@@ -46,6 +46,12 @@
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 
+// D4 == GPIO02 == BUILTIN_LED
+// D1 == GPIO04
+// D2 == GPIO05
+#define MOTORPIN1 D2
+#define MOTORPIN2 D1
+
 WiFiServer webserver(80);            // outside of setup and loop, so that both can use it.
 
 void setup() {
@@ -61,6 +67,9 @@ void setup() {
   digitalWrite(LED_BUILTIN, LOW);
   // start serial
   Serial.begin(115200);           // debug to Serial is automtically enabled in autoConnect()
+  pinMode(MOTORPIN1, OUTPUT);	  // software PWM for main motor
+  pinMode(MOTORPIN2, OUTPUT);	  // software PWM for main motor
+  analogWriteFreq(50);            /* Set PWM frequency. 50Hz to match a standard servo */
 
   // start wifi
   WiFiManager wifimanager;
@@ -114,16 +123,16 @@ void setup() {
   ArduinoOTA.begin();
 }
 
-int motor_set_speed = 0;		// -1023 .. 0 1023
+#define LOOP_DELAY 100		// 100: run 10 loops per second.
+int motor_set_speed = 160;	// -1023 .. 0 1023; 160 minimum to break loose
 int nblinks = 2;
 String header;
 
 int blinkstate = 0;
-#define BLINKPAUSE 3
+#define BLINK_PAUSE 3
 int blinkcount = 0;
 
-uint8_t Motorpin1 = D1;		// aka GPIO04
-uint8_t Motorpin2 = D2;		// aka GPIO05
+#define MOTOR_ACCEL 16		// from stop to full speed takes 1024/MOTOR_ACCEL*LOOP_DELAY*0.001 seconds.
 int motor_cur_speed = 0;	// -1023 .. 0 1023
 
 void loop() {
@@ -149,10 +158,28 @@ void loop() {
 
   if (blinkcount >= nblinks)
     {
-      blinkcount = -BLINKPAUSE;
+      blinkcount = -BLINK_PAUSE;
     }
 
-  delay(100);
+  int motor_diff = motor_set_speed - motor_cur_speed;
+  if (motor_diff > MOTOR_ACCEL)
+    motor_diff = MOTOR_ACCEL;
+  else if (motor_diff < -MOTOR_ACCEL)
+    motor_diff = -MOTOR_ACCEL;
+  motor_cur_speed += motor_diff;
+
+  if (motor_cur_speed >= 0)
+    {
+      analogWrite(MOTORPIN1, motor_cur_speed);
+      digitalWrite(MOTORPIN2, LOW);
+    }
+  else
+    {
+      digitalWrite(MOTORPIN1, LOW);
+      analogWrite(MOTORPIN2, motor_cur_speed);
+    }
+
+  delay(LOOP_DELAY);
 
   WiFiClient client = webserver.available();
   if (client) {                             // If a new client connects,
